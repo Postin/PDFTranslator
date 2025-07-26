@@ -1,0 +1,14 @@
+# Ignore .env file
+.env
+
+# Ignore translated pages
+translated_pages/
+
+# Ignore data files
+data/
+
+# Ignore Pycache files
+__pycache__/
+
+# Ignore .idea files (Local IDE settings etc)
+.idea
