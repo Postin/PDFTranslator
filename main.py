@@ -6,9 +6,9 @@ def main():
     args = parser.parse_args()
 
     # Import modules here (lazy load)
-    # from pipeline import run_translation_pipeline
+    from pipeline import run_translation_pipeline
 
-    # run_translation_pipeline(args)
+    run_translation_pipeline(args)
 
 
 if __name__ == "__main__":

@@ -57,8 +57,9 @@ def export_translation_to_docx(
 
 
 if __name__ == '__main__':
-    export_translation_to_docx(
-        input_txt_path="../translated_pages/merged_serbian.txt",
-        output_docx_path="../translated_pages/serbian_book.docx",
-        language="Srpski"
-    )
+    pass
+    # export_translation_to_docx(
+    #     input_txt_path="../translated_pages/merged_serbian.txt",
+    #     output_docx_path="../translated_pages/serbian_book.docx",
+    #     language="Srpski"
+    # )

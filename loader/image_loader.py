@@ -3,6 +3,7 @@ from PIL import Image
 import os
 from typing import List
 
+
 def pdf_to_images(
     pdf_path: str,
     cache_dir: str = "data/images",
@@ -39,18 +40,3 @@ def pdf_to_images(
 
     print(f"✅ Saved {len(images)} images to '{cache_dir}'")
     return images
-
-
-# def pdf_to_images(pdf_path: str, dpi: int = 200) -> List[Image.Image]:
-#     """
-#     Converts PDF pages to a list of PIL Images.
-#
-#     Args:
-#         pdf_path (str): Path to PDF file.
-#         dpi (int): Resolution for rendering.
-#
-#     Returns:
-#         List[Image.Image]: List of images (one per page).
-#     """
-#     images = convert_from_path(pdf_path, dpi=dpi, poppler_path=r"C:\poppler-24.08.0\Library\bin")
-#     return images

@@ -72,8 +72,11 @@ def export_text_to_pdf(
     print(f"✅ PDF saved to {output_pdf_path}")
 
 
-export_text_to_pdf(
-    input_txt_path="../translated_pages/merged_serbian.txt",
-    output_pdf_path="../translated_pages/serbian_book.pdf",
-    font_size=11
-)
+if __name__ == '__main__':
+    pass
+
+    export_text_to_pdf(
+        input_txt_path="../translated_pages/merged_serbian.txt",
+        output_pdf_path="../translated_pages/serbian_book.pdf",
+        font_size=11
+    )
