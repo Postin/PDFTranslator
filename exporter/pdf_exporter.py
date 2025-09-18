@@ -11,7 +11,7 @@ from reportlab.pdfbase import pdfmetrics
 pdfmetrics.registerFont(TTFont("DejaVuSans", "../fonts/DejaVuSans.ttf"))
 
 
-def export_text_to_pdf(
+def export_translation_to_pdf(
     input_txt_path: str,
     output_pdf_path: str,
     font_path: str = "fonts/DejaVuSans.ttf",
@@ -75,8 +75,6 @@ def export_text_to_pdf(
 if __name__ == '__main__':
     pass
 
-    export_text_to_pdf(
-        input_txt_path="../translated_pages/merged_serbian.txt",
-        output_pdf_path="../translated_pages/serbian_book.pdf",
-        font_size=11
-    )
+    export_translation_to_pdf(input_txt_path="../data/Guru Leela 6_FINAL PRINT/translated_pages/merged_source.txt",
+                              output_pdf_path="../data/Guru Leela 6_FINAL PRINT/translated_pages/german_book.pdf",
+                              font_size=11)

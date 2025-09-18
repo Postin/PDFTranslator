@@ -7,7 +7,7 @@ import os
 def export_translation_to_docx(
     input_txt_path: str,
     output_docx_path: str,
-    language: str = "Srpski"  # or "English"
+    language: str = "Srpski"
 ):
     """
     Converts a merged translation file to a DOCX file,
@@ -42,7 +42,7 @@ def export_translation_to_docx(
 
     for page_number, page_text in matches:
         # Add a heading for the page
-        doc.add_heading(f"{language} – Strana {page_number}", level=2)
+        doc.add_heading(f"Page {page_number}", level=2)
 
         # Split paragraphs
         for para in page_text.strip().split("\n"):
@@ -50,16 +50,16 @@ def export_translation_to_docx(
                 doc.add_paragraph(para.strip())
 
         # Page break after each section
-        doc.add_page_break()
+        # doc.add_page_break()
 
     doc.save(output_docx_path)
     print(f"✅ Word document saved to: {output_docx_path}")
 
 
 if __name__ == '__main__':
-    pass
-    # export_translation_to_docx(
-    #     input_txt_path="../translated_pages/merged_serbian.txt",
-    #     output_docx_path="../translated_pages/serbian_book.docx",
-    #     language="Srpski"
-    # )
+    # pass
+    export_translation_to_docx(
+        input_txt_path="../data/GL-9_Print Ready/translated_pages/merged_source.txt",
+        output_docx_path="../data/GL-9_Print Ready/translated_pages/book.docx",
+        language="German"
+    )
