@@ -1,56 +1,124 @@
-from pdf2image import convert_from_path
-from PIL import Image
 import os
-from typing import List
+from typing import List, Union
+from PIL import Image
+import fitz  # PyMuPDF
 
-def pdf_to_images(
-    pdf_path: str,
-    cache_dir: str = "data/images",
-    dpi: int = 200,
-) -> List[Image.Image]:
+
+def analyze_pdf_page(page: fitz.Page, min_text_coverage: float = 0.8) -> bool:
     """
-    Converts PDF pages to images and caches them as PNGs.
-    If images already exist, loads from disk instead of recomputing.
-
+    Determine if a PDF page has extractable text or is scanned/image-based.
+    
     Args:
-        pdf_path (str): Path to PDF file.
-        cache_dir (str): Directory to save/load cached PNGs.
-        dpi (int): Resolution for rendering.
-
+        page: PyMuPDF page object
+        min_text_coverage: Minimum ratio of text blocks to consider page as text-based
+        
     Returns:
-        List[Image.Image]: List of PIL images for each page.
+        True if page is text-based, False if scanned/image-based
     """
+    text = page.get_text().strip()
+    
+    # If there's substantial text, consider it text-based
+    if len(text) > 100:
+        # Check if there are images that might indicate a scanned page
+        # Use full=True to get complete image info needed for get_image_bbox
+        image_list = page.get_images(full=True)
+        
+        # If single large image covers most of the page, it's likely scanned
+        if len(image_list) == 1:
+            try:
+                img_rect = page.get_image_bbox(image_list[0])
+                if img_rect:
+                    page_area = page.rect.width * page.rect.height
+                    img_area = img_rect.width * img_rect.height
+                    if img_area / page_area > 0.7:
+                        return False
+            except (ValueError, Exception):
+                # If we can't get image bbox, assume it's text-based if text exists
+                pass
+        
+        return True
+    
+    return False
+
+
+def extract_text_from_page(page: fitz.Page) -> str:
+    """Extract text content from a PDF page."""
+    return page.get_text().strip()
+
+
+def render_page_to_image(page: fitz.Page, dpi: int = 200) -> Image.Image:
+    """Render a PDF page to a PIL Image."""
+    zoom = dpi / 72  # 72 is the default PDF DPI
+    matrix = fitz.Matrix(zoom, zoom)
+    pix = page.get_pixmap(matrix=matrix)
+    
+    # Convert to PIL Image
+    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    return img
+
+
+def load_pdf(
+    pdf_path: str,
+    cache_dir: str = "translation_cache/images",
+    dpi: int = 200
+) -> List[dict]:
+    """
+    Load a PDF and extract content from each page.
+    Automatically detects if pages are text-based or scanned.
+    
+    Args:
+        pdf_path: Path to the PDF file
+        cache_dir: Directory to cache rendered images
+        dpi: Resolution for rendering scanned pages
+        
+    Returns:
+        List of dicts with structure:
+        {
+            "page_num": int,
+            "content": str | Image.Image,
+            "type": "text" | "image"
+        }
+    """
+    if not os.path.exists(pdf_path):
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+    
     os.makedirs(cache_dir, exist_ok=True)
-
-    # Filter for cached page images
-    cached_files = sorted(
-        [f for f in os.listdir(cache_dir) if f.startswith("page_") and f.endswith(".png")]
-    )
-
-    if cached_files:
-        print(f"📦 Using cached images in '{cache_dir}'...")
-        return [Image.open(os.path.join(cache_dir, fname)) for fname in cached_files]
-
-    print("🖼 No cached images found. Converting PDF to images...")
-    images = convert_from_path(pdf_path, dpi=dpi, poppler_path=r"C:\poppler-24.08.0\Library\bin")
-
-    for i, img in enumerate(images):
-        img.save(os.path.join(cache_dir, f"page_{i+1:03d}.png"), "PNG")
-
-    print(f"✅ Saved {len(images)} images to '{cache_dir}'")
-    return images
-
-
-# def pdf_to_images(pdf_path: str, dpi: int = 200) -> List[Image.Image]:
-#     """
-#     Converts PDF pages to a list of PIL Images.
-#
-#     Args:
-#         pdf_path (str): Path to PDF file.
-#         dpi (int): Resolution for rendering.
-#
-#     Returns:
-#         List[Image.Image]: List of images (one per page).
-#     """
-#     images = convert_from_path(pdf_path, dpi=dpi, poppler_path=r"C:\poppler-24.08.0\Library\bin")
-#     return images
+    
+    doc = fitz.open(pdf_path)
+    pages = []
+    
+    print(f"Analyzing {len(doc)} pages...")
+    
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        page_data = {"page_num": page_num + 1}
+        
+        if analyze_pdf_page(page):
+            # Text-based page - extract text directly
+            page_data["content"] = extract_text_from_page(page)
+            page_data["type"] = "text"
+        else:
+            # Scanned/image page - render to image
+            cache_path = os.path.join(cache_dir, f"page_{page_num + 1:03d}.png")
+            
+            if os.path.exists(cache_path):
+                # Load from cache
+                page_data["content"] = Image.open(cache_path)
+            else:
+                # Render and cache
+                img = render_page_to_image(page, dpi=dpi)
+                img.save(cache_path, "PNG")
+                page_data["content"] = img
+            
+            page_data["type"] = "image"
+        
+        pages.append(page_data)
+    
+    doc.close()
+    
+    # Summary
+    text_pages = sum(1 for p in pages if p["type"] == "text")
+    image_pages = sum(1 for p in pages if p["type"] == "image")
+    print(f"Loaded {len(pages)} pages: {text_pages} text-based, {image_pages} scanned/image")
+    
+    return pages

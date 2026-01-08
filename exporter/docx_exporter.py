@@ -1,64 +1,76 @@
-from docx import Document
-from docx.shared import Pt
-import re
 import os
+from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 
-def export_translation_to_docx(
-    input_txt_path: str,
-    output_docx_path: str,
-    language: str = "Srpski"  # or "English"
+def create_bilingual_docx(
+    pages: list,
+    output_path: str,
+    source_lang: str,
+    target_lang: str
 ):
     """
-    Converts a merged translation file to a DOCX file,
-    with each logical page in its own section.
-
+    Create a Word document with original and translated text for each page.
+    Sequential layout: original text first, then translation below.
+    
     Args:
-        input_txt_path (str): Path to merged_english.txt or merged_serbian.txt
-        output_docx_path (str): Destination .docx file path
-        language (str): Optional label (used in headers)
+        pages: List of dicts with {"original": str, "translated": str, "page_num": int}
+        output_path: Output .docx file path
+        source_lang: Source language name (for headers)
+        target_lang: Target language name (for headers)
     """
-
-    if not os.path.exists(input_txt_path):
-        print(f"❌ File not found: {input_txt_path}")
-        return
-
-    with open(input_txt_path, "r", encoding="utf-8") as f:
-        full_text = f.read()
-
-    # Match page headers and content
-    matches = re.findall(
-        r"-{3,}\s*(?:PAGE|STRANA)\s+(\d+)\s*-{3,}\s*(.*?)(?=(?:-{3,}\s*(?:PAGE|STRANA)\s+\d+\s*-{3,})|$)",
-        full_text,
-        flags=re.IGNORECASE | re.DOTALL
-    )
-
     doc = Document()
-
-    # Set base font style
+    
+    # Set default style
     style = doc.styles["Normal"]
     style.font.name = "Calibri"
-    style.font.size = Pt(12)
-
-    for page_number, page_text in matches:
-        # Add a heading for the page
-        doc.add_heading(f"{language} – Strana {page_number}", level=2)
-
-        # Split paragraphs
-        for para in page_text.strip().split("\n"):
+    style.font.size = Pt(11)
+    
+    for page_data in pages:
+        page_num = page_data["page_num"]
+        original = page_data.get("original", "")
+        translated = page_data.get("translated", "")
+        
+        # Page header
+        header = doc.add_heading(f"Page {page_num}", level=1)
+        header.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        
+        # Original text section
+        original_header = doc.add_heading(f"Original ({source_lang})", level=2)
+        for run in original_header.runs:
+            run.font.color.rgb = RGBColor(70, 70, 70)
+        
+        for para in original.split("\n"):
             if para.strip():
-                doc.add_paragraph(para.strip())
-
-        # Page break after each section
+                p = doc.add_paragraph(para.strip())
+                p.paragraph_format.space_after = Pt(6)
+            else:
+                doc.add_paragraph()
+        
+        # Separator
+        separator = doc.add_paragraph("─" * 60)
+        separator.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        
+        # Translated text section
+        translated_header = doc.add_heading(f"Translation ({target_lang})", level=2)
+        for run in translated_header.runs:
+            run.font.color.rgb = RGBColor(0, 102, 153)
+        
+        for para in translated.split("\n"):
+            if para.strip():
+                p = doc.add_paragraph(para.strip())
+                p.paragraph_format.space_after = Pt(6)
+            else:
+                doc.add_paragraph()
+        
+        # Page break after each page
         doc.add_page_break()
-
-    doc.save(output_docx_path)
-    print(f"✅ Word document saved to: {output_docx_path}")
-
-
-if __name__ == '__main__':
-    export_translation_to_docx(
-        input_txt_path="../translated_pages/merged_serbian.txt",
-        output_docx_path="../translated_pages/serbian_book.docx",
-        language="Srpski"
-    )
+    
+    # Ensure output directory exists
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    
+    doc.save(output_path)
+    print(f"Bilingual document saved to: {output_path}")
